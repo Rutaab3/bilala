@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow | Premium Pomodoro</title>
+    
+    <!-- CDN Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           DESIGN SYSTEM & THEME TOKENS
+           ========================================= */
+        :root {
+            /* Light Theme Defaults */
+            --md-primary: #6750A4;
+            --md-primary-container: #EADDFF;
+            --md-on-primary: #FFFFFF;
+            --md-secondary: #625B71;
+            --md-secondary-container: #E8DEF8;
+            --md-surface: #FFFBFE;
+            --md-surface-variant: #E7E0EC;
+            --md-on-surface: #1C1B1F;
+            --md-on-surface-variant: #49454F;
+            --md-outline: #79747E;
+            --md-error: #B3261E;
+            --md-success: #386A20;
+            --md-warning: #7D5700;
+            --md-background: #FFFBFE;
+            --md-shadow: rgba(0,0,0,0.12);
+            --md-elevation-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+            --md-elevation-2: 0 3px 6px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.12);
+            --md-elevation-3: 0 10px 20px rgba(0,0,0,0.10), 0 6px 6px rgba(0,0,0,0.11);
+            
+            /* Shapes */
+            --md-radius-sm: 8px;
+            --md-radius-md: 16px;
+            --md-radius-lg: 24px;
+            --md-radius-xl: 28px;
+            --md-radius-full: 9999px;
+            
+            /* Typography */
+            --md-display: 700 3.5rem/1.1 'Inter', sans-serif;
+            --md-headline-lg: 600 2rem/1.2 'Inter', sans-serif;
+            --md-headline-md: 600 1.75rem/1.2 'Inter', sans-serif;
+            --md-title-lg: 600 1.375rem/1.3 'Inter', sans-serif;
+            --md-title-md: 500 1rem/1.5 'Inter', sans-serif;
+            --md-body-lg: 400 1rem/1.6 'Inter', sans-serif;
+            --md-body-md: 400 0.875rem/1.5 'Inter', sans-serif;
+            --md-label: 500 0.75rem/1.4 'Inter', sans-serif;
+
+            /* App specific */
+            --nav-height: 80px;
+            --sidebar-width: 260px;
+        }
+
+        [data-theme="dark"] {
+            --md-primary: #D0BCFF;
+            --md-primary-container: #4F378B;
+            --md-on-primary: #381E72;
+            --md-secondary: #CCC2DC;
+            --md-secondary-container: #4A4458;
+            --md-surface: #1C1B1F;
+            --md-surface-variant: #49454F;
+            --md-on-surface: #E6E1E5;
+            --md-on-surface-variant: #CAC4D0;
+            --md-outline: #938F99;
+            --md-background: #1C1B1F;
+            --md-shadow: rgba(0,0,0,0.5);
+        }
+
+        /* =========================================
+           GLOBAL RESETS & UTILITIES
+           ========================================= */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--md-background);
+            color: var(--md-on-surface);
+            overflow: hidden; /* App feels like a native app */
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Ripple Effect */
+        .ripple-container { position: relative; overflow: hidden; }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            background: currentColor;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Curtain Transition */
+        #view-curtain {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--md-primary);
+            z-index: 9999;
+            pointer-events: none;
+            clip-path: circle(0% at 50% 100%);
+        }
+
+        /* Particle Container */
+        #particles {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9000; overflow: hidden;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--md-surface-variant); border-radius: var(--md-radius-full); }
+
+        /* =========================================
+           LAYOUT: NAVIGATION
+           ========================================= */
+        #sidebar { display: none; }
+        #bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height);
+            background: rgba(var(--md-surface-rgb), 0.8);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--md-surface-variant);
+            display: flex; justify-content: space-around; align-items: center;
+            z-index: 1000;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--md-on-surface-variant); cursor: pointer;
+            width: 64px; height: 64px; position: relative;
+            text-decoration: none;
+        }
+        .nav-item .material-icons-round { z-index: 2; margin-bottom: 4px; transition: color 0.3s; }
+        .nav-item span { font: var(--md-label); z-index: 2; transition: color 0.3s; }
+        .nav-indicator {
+            position: absolute; top: 8px; left: 0; width: 64px; height: 32px;
+            background: var(--md-secondary-container);
+            border-radius: var(--md-radius-xl);
+            z-index: 1; opacity: 0; transition: opacity 0.3s;
+        }
+        .nav-item.active { color: var(--md-on-surface); }
+        .nav-item.active .nav-indicator { opacity: 1; }
+
+        @media (min-width: 900px) {
+            #bottom-nav { display: none; }
+            #sidebar {
+                display: flex; flex-direction: column;
+                position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh;
+                background: var(--md-surface);
+                border-right: 1px solid var(--md-surface-variant);
+                padding: 32px 16px; z-index: 1000;
+            }
+            .brand { font: var(--md-headline-md); color: var(--md-primary); margin-bottom: 48px; display: flex; align-items: center; gap: 12px; }
+            .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+            .sidebar-item {
+                display: flex; align-items: center; gap: 16px;
+                padding: 16px 24px; border-radius: var(--md-radius-full);
+                color: var(--md-on-surface-variant); cursor: pointer;
+                text-decoration: none; font: var(--md-title-md);
+                position: relative; overflow: hidden;
+            }
+            .sidebar-item:hover { background: var(--md-surface-variant); }
+            .sidebar-item.active { background: var(--md-secondary-container); color: var(--md-on-surface); font-weight: 600; }
+        }
+
+        /* =========================================
+           LAYOUT: VIEWS CONTAINER
+           ========================================= */
+        #app {
+            position: absolute; top: 0; left: 0; width: 100%; height: calc(100vh - var(--nav-height));
+            overflow-y: auto; overflow-x: hidden;
+        }
+        @media (min-width: 900px) {
+            #app { left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); height: 100vh; }
+        }
+        
+        .view {
+            display: none; padding: 24px; min-height: 100%; width: 100%;
+            max-width: 1200px; margin: 0 auto;
+        }
+        .view.active { display: block; }
+
+        /* =========================================
+           COMPONENTS
+           ========================================= */
+        /* FAB */
+        .fab {
+            width: 56px; height: 56px; border-radius: var(--md-radius-lg);
+            background: var(--md-primary-container); color: var(--md-on-surface);
+            box-shadow: var(--md-elevation-3);
+            position: fixed; bottom: calc(var(--nav-height) + 24px); right: 24px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 100; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        @media (min-width: 900px) { .fab { bottom: 40px; right: 40px; } }
+        .fab:hover { box-shadow: 0 14px 28px rgba(0,0,0,0.15), 0 10px 10px rgba(0,0,0,0.12); }
+        .fab-large { width: 80px; height: 80px; border-radius: 24px; font-size: 36px; background: var(--md-primary); color: var(--md-on-primary); position: relative; inset: auto;}
+        
+        /* Material Inputs */
+        .md-field { position: relative; margin-bottom: 24px; }
+        .md-field input, .md-field textarea {
+            width: 100%; padding: 16px 14px; border: 2px solid var(--md-outline);
+            border-radius: var(--md-radius-sm); background: transparent;
+            color: var(--md-on-surface); font: var(--md-body-lg); outline: none;
+            transition: border-color 0.2s;
+        }
+        .md-field label {
+            position: absolute; top: 50%; left: 14px; transform: translateY(-50%);
+            color: var(--md-on-surface-variant); font: var(--md-body-lg);
+            transition: all 0.2s; pointer-events: none; background: var(--md-surface); padding: 0 4px;
+        }
+        .md-field textarea + label { top: 24px; }
+        .md-field input:focus, .md-field textarea:focus { border-color: var(--md-primary); }
+        .md-field input:focus + label, .md-field input:not(:placeholder-shown) + label,
+        .md-field textarea:focus + label, .md-field textarea:not(:placeholder-shown) + label {
+            top: 0; transform: translateY(-50%) scale(0.8); color: var(--md-primary);
+        }
+
+        /* Chips */
+        .chip {
+            display: inline-flex; align-items: center; padding: 6px 12px;
+            background: var(--md-surface-variant); border-radius: var(--md-radius-sm);
+            font: var(--md-label); color: var(--md-on-surface-variant); cursor: pointer;
+            border: 1px solid transparent; transition: all 0.2s;
+        }
+        .chip.active { background: var(--md-secondary-container); color: var(--md-on-surface); border-color: var(--md-primary); }
+        
+        /* SweetAlert2 Material Override */
+        .md-toast { background: var(--md-surface) !important; color: var(--md-on-surface) !important; box-shadow: var(--md-elevation-2) !important; border-radius: var(--md-radius-md) !important;}
+        .swal2-popup { background: var(--md-surface) !important; color: var(--md-on-surface) !important; border-radius: var(--md-radius-lg) !important; font-family: 'Inter', sans-serif !important; }
+        .swal2-title { font: var(--md-title-lg) !important; color: var(--md-on-surface) !important; }
+        .swal2-confirm { background: var(--md-primary) !important; color: var(--md-on-primary) !important; border-radius: var(--md-radius-full) !important; padding: 10px 24px !important; }
+        .swal2-cancel { background: transparent !important; color: var(--md-primary) !important; }
+
+        /* =========================================
+           VIEW 1: TIMER
+           ========================================= */
+        #view-timer { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; position: relative;}
+        
+        .timer-tabs { display: flex; gap: 8px; background: var(--md-surface-variant); padding: 4px; border-radius: var(--md-radius-full); margin-bottom: 40px; }
+        .timer-tab { padding: 8px 20px; border-radius: var(--md-radius-full); font: var(--md-label); cursor: pointer; transition: 0.3s; }
+        .timer-tab.active { background: var(--md-primary); color: var(--md-on-primary); box-shadow: var(--md-elevation-1); }
+
+        .timer-container { position: relative; width: 280px; height: 280px; margin-bottom: 40px; }
+        @media (min-width: 900px) { .timer-container { width: 360px; height: 360px; } }
+        
+        .timer-svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+        .timer-track { fill: none; stroke: var(--md-surface-variant); stroke-width: 12; }
+        .timer-progress { fill: none; stroke: var(--md-primary); stroke-width: 12; stroke-linecap: round; transition: stroke 0.5s; }
+        
+        .timer-display {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .time-text { font: var(--md-display); font-variant-numeric: tabular-nums; letter-spacing: -2px; color: var(--md-on-surface); }
+        .session-label { font: var(--md-title-md); color: var(--md-on-surface-variant); margin-top: -8px; }
+        
+        .timer-controls { display: flex; align-items: center; gap: 24px; margin-bottom: 40px; }
+        .btn-icon {
+            width: 48px; height: 48px; border-radius: 50%; border: none;
+            background: var(--md-surface-variant); color: var(--md-on-surface);
+            display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
+        }
+        .btn-icon:hover { background: var(--md-secondary-container); }
+        
+        .quote-box { text-align: center; max-width: 400px; min-height: 60px; font: var(--md-body-lg); font-style: italic; color: var(--md-on-surface-variant); margin-bottom: 40px; perspective: 1000px; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;}
+        .quote-word { display: inline-block; }
+
+        .mixer-panel {
+            width: 100%; max-width: 500px; background: var(--md-surface); border-radius: var(--md-radius-lg);
+            padding: 24px; box-shadow: var(--md-elevation-1); display: flex; justify-content: space-between; gap: 12px;
+        }
+        .mixer-item { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: 1; }
+        .mixer-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--md-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; font-size: 20px;}
+        .mixer-icon.active { background: var(--md-primary-container); color: var(--md-primary); }
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent; transform: rotate(-90deg); width: 60px; margin-top: 20px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--md-primary); cursor: pointer; margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: var(--md-surface-variant); border-radius: 2px; }
+
+        /* =========================================
+           VIEW 2: TASKS
+           ========================================= */
+        .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;}
+        .task-filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;}
+        .task-list { display: flex; flex-direction: column; gap: 16px; padding-bottom: 100px; }
+        
+        .task-card {
+            background: var(--md-surface); border-radius: var(--md-radius-md); padding: 16px;
+            box-shadow: var(--md-elevation-1); display: flex; align-items: flex-start; gap: 16px;
+            position: relative; overflow: hidden; touch-action: pan-y;
+        }
+        .task-checkbox {
+            width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--md-outline);
+            display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-top: 4px; transition: 0.2s;
+        }
+        .task-checkbox:hover { border-color: var(--md-primary); }
+        .task-checkbox.checked { background: var(--md-success); border-color: var(--md-success); color: white; }
+        
+        .task-content { flex: 1; }
+        .task-title { font: var(--md-title-md); margin-bottom: 4px; position: relative; display: inline-block; }
+        .task-title::after { content: ''; position: absolute; left: 0; top: 50%; width: 100%; height: 2px; background: var(--md-on-surface); transform: scaleX(0); transform-origin: left; transition: transform 0.3s; }
+        .task-card.completing .task-title::after { transform: scaleX(1); }
+        
+        .task-meta { display: flex; gap: 12px; font: var(--md-label); color: var(--md-on-surface-variant); align-items: center; flex-wrap: wrap; }
+        .priority-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .p-low { background: var(--md-success); } .p-medium { background: var(--md-warning); }
+        .p-high { background: orange; } .p-critical { background: var(--md-error); }
+        
+        .task-pomodoros { display: flex; gap: 4px; }
+        .pomo-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--md-surface-variant); }
+        .pomo-dot.filled { background: var(--md-primary); }
+        
+        .delete-bg { position: absolute; right: 0; top: 0; height: 100%; width: 100%; background: var(--md-error); color: white; display: flex; align-items: center; justify-content: flex-end; padding-right: 24px; z-index: -1; font: var(--md-title-md); }
+
+        .empty-state { text-align: center; padding: 64px 24px; color: var(--md-on-surface-variant); display: none; }
+        .empty-state svg { width: 120px; height: 120px; fill: var(--md-surface-variant); margin-bottom: 24px; }
+
+        /* =========================================
+           VIEW 3: STATS
+           ========================================= */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card {
+            background: var(--md-surface); padding: 24px; border-radius: var(--md-radius-md);
+            box-shadow: var(--md-elevation-1); display: flex; flex-direction: column; gap: 8px;
+        }
+        .stat-label { font: var(--md-label); color: var(--md-on-surface-variant); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { font: var(--md-headline-lg); color: var(--md-primary); display: flex; align-items: baseline; gap: 4px;}
+        .stat-unit { font: var(--md-title-md); color: var(--md-on-surface-variant); }
+
+        .chart-container { background: var(--md-surface); padding: 24px; border-radius: var(--md-radius-md); box-shadow: var(--md-elevation-1); margin-bottom: 32px; height: 300px; position: relative; }
+        canvas { width: 100%; height: 100%; }
+
+        .heatmap-container { background: var(--md-surface); padding: 24px; border-radius: var(--md-radius-md); box-shadow: var(--md-elevation-1); overflow-x: auto; }
+        .heatmap { display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; width: max-content; }
+        .heatmap-cell { width: 14px; height: 14px; border-radius: 2px; background: var(--md-surface-variant); cursor: pointer; transition: 0.2s; position: relative; }
+        .heatmap-cell:hover { transform: scale(1.4); z-index: 10; box-shadow: var(--md-shadow); }
+        .heatmap-cell[data-level="1"] { background: var(--md-primary-container); }
+        .heatmap-cell[data-level="2"] { background: #9A82DB; }
+        .heatmap-cell[data-level="3"] { background: var(--md-primary); }
+        .heatmap-cell[data-level="4"] { background: var(--md-on-primary); } /* adjusted based on dark/light context dynamically via style if needed, sticking to prompt colors */
+        
+        /* Custom Heatmap Tooltip */
+        .heat-tooltip {
+            position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+            background: var(--md-on-surface); color: var(--md-surface); font: var(--md-label);
+            padding: 4px 8px; border-radius: 4px; pointer-events: none; opacity: 0; white-space: nowrap; transition: opacity 0.2s; margin-bottom: 6px; z-index: 20;
+        }
+        .heatmap-cell:hover .heat-tooltip { opacity: 1; }
+
+        /* =========================================
+           VIEW 4: SETTINGS
+           ========================================= */
+        .settings-section { margin-bottom: 32px; background: var(--md-surface); border-radius: var(--md-radius-md); padding: 24px; box-shadow: var(--md-elevation-1); }
+        .settings-title { font: var(--md-title-lg); color: var(--md-primary); margin-bottom: 24px; display: flex; align-items: center; gap: 8px;}
+        
+        .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--md-surface-variant); }
+        .settings-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .set-label { font: var(--md-body-lg); color: var(--md-on-surface); }
+        .set-sub { font: var(--md-body-md); color: var(--md-on-surface-variant); }
+        
+        .num-input { width: 80px; padding: 8px; border: 1px solid var(--md-outline); border-radius: var(--md-radius-sm); text-align: center; background: transparent; color: var(--md-on-surface);}
+        
+        /* Switch */
+        .switch { position: relative; display: inline-block; width: 52px; height: 32px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-surface-variant); transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 4px; background-color: var(--md-outline); transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--md-primary); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: var(--md-on-primary); }
+
+        /* Color Picker */
+        .color-swatches { display: flex; gap: 12px; }
+        .swatch { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; transition: 0.2s; border: 2px solid transparent;}
+        .swatch:hover { transform: scale(1.1); }
+        .swatch.active { border-color: var(--md-on-surface); transform: scale(1.1); }
+
+    </style>
+</head>
+<body>
+
+    <!-- Transition Curtain -->
+    <div id="view-curtain"></div>
+    <div id="particles"></div>
+
+    <!-- Desktop Sidebar -->
+    <nav id="sidebar">
+        <div class="brand">
+            <span class="material-icons-round">all_inclusive</span> FocusFlow
+        </div>
+        <div class="sidebar-nav">
+            <a class="sidebar-item ripple-container active" data-target="view-timer">
+                <span class="material-icons-round">timer</span> Timer
+            </a>
+            <a class="sidebar-item ripple-container" data-target="view-tasks">
+                <span class="material-icons-round">checklist</span> Tasks
+            </a>
+            <a class="sidebar-item ripple-container" data-target="view-stats">
+                <span class="material-icons-round">insights</span> Analytics
+            </a>
+            <a class="sidebar-item ripple-container" data-target="view-settings">
+                <span class="material-icons-round">tune</span> Settings
+            </a>
+        </div>
+    </nav>
+
+    <!-- App Content -->
+    <main id="app">
+        
+        <!-- View 1: Timer -->
+        <section id="view-timer" class="view active">
+            <div class="timer-tabs">
+                <div class="timer-tab active ripple-container" data-mode="focus">Focus</div>
+                <div class="timer-tab ripple-container" data-mode="shortBreak">Short Break</div>
+                <div class="timer-tab ripple-container" data-mode="longBreak">Long Break</div>
+            </div>
+
+            <div class="timer-container">
+                <svg class="timer-svg" viewBox="0 0 100 100">
+                    <circle class="timer-track" cx="50" cy="50" r="45"></circle>
+                    <circle class="timer-progress" id="timer-ring" cx="50" cy="50" r="45"></circle>
+                </svg>
+                <div class="timer-display">
+                    <div class="time-text" id="time-display">25:00</div>
+                    <div class="session-label" id="session-label">Focus Session</div>
+                    <div class="task-pomodoros mt-3" id="cycle-dots">
+                        <!-- Dots populated via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="timer-controls">
+                <button class="btn-icon ripple-container" id="btn-reset" title="Reset"><span class="material-icons-round">refresh</span></button>
+                <button class="fab-large ripple-container" id="btn-play" title="Play/Pause"><span class="material-icons-round" id="play-icon">play_arrow</span></button>
+                <button class="btn-icon ripple-container" id="btn-skip" title="Skip"><span class="material-icons-round">skip_next</span></button>
+            </div>
+
+            <div class="quote-box" id="quote-box"></div>
+
+            <div class="mixer-panel">
+                <div class="mixer-item">
+                    <div class="mixer-icon ripple-container" data-sound="rain"><span class="material-icons-round">water_drop</span></div>
+                    <input type="range" class="sound-vol" data-sound="rain" min="0" max="1" step="0.01" value="0.5">
+                </div>
+                <div class="mixer-item">
+                    <div class="mixer-icon ripple-container" data-sound="ocean"><span class="material-icons-round">waves</span></div>
+                    <input type="range" class="sound-vol" data-sound="ocean" min="0" max="1" step="0.01" value="0.5">
+                </div>
+                <div class="mixer-item">
+                    <div class="mixer-icon ripple-container" data-sound="cafe"><span class="material-icons-round">local_cafe</span></div>
+                    <input type="range" class="sound-vol" data-sound="cafe" min="0" max="1" step="0.01" value="0.5">
+                </div>
+                <div class="mixer-item">
+                    <div class="mixer-icon ripple-container" data-sound="forest"><span class="material-icons-round">park</span></div>
+                    <input type="range" class="sound-vol" data-sound="forest" min="0" max="1" step="0.01" value="0.5">
+                </div>
+                <div class="mixer-item">
+                    <div class="mixer-icon ripple-container" data-sound="fire"><span class="material-icons-round">local_fire_department</span></div>
+                    <input type="range" class="sound-vol" data-sound="fire" min="0" max="1" step="0.01" value="0.5">
+                </div>
+            </div>
+        </section>
+
+        <!-- View 2: Tasks -->
+        <section id="view-tasks" class="view">
+            <div class="task-header">
+                <h2>Task Board</h2>
+                <div class="task-filters">
+                    <div class="chip active ripple-container" data-filter="all">All</div>
+                    <div class="chip ripple-container" data-filter="today">Today</div>
+                    <div class="chip ripple-container" data-filter="upcoming">Upcoming</div>
+                    <div class="chip ripple-container" data-filter="completed">Completed</div>
+                </div>
+            </div>
+
+            <div class="empty-state" id="task-empty">
+                <svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                <h3>All clear!</h3>
+                <p>Add your first task to get into the flow.</p>
+            </div>
+
+            <div class="task-list" id="task-list">
+                <!-- Tasks rendered here -->
+            </div>
+
+            <div class="fab ripple-container" id="fab-add-task">
+                <span class="material-icons-round">add</span>
+            </div>
+        </section>
+
+        <!-- View 3: Stats -->
+        <section id="view-stats" class="view">
+            <h2 class="mb-4">Analytics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Pomodoros</div>
+                    <div class="stat-value"><span id="stat-pomos">0</span> <span class="material-icons-round stat-unit">local_fire_department</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Focus Time</div>
+                    <div class="stat-value"><span id="stat-hours">0</span><span class="stat-unit">h</span> <span id="stat-mins">0</span><span class="stat-unit">m</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tasks Done</div>
+                    <div class="stat-value"><span id="stat-tasks">0</span> <span class="material-icons-round stat-unit">task_alt</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Day Streak</div>
+                    <div class="stat-value"><span id="stat-streak">0</span> <span class="material-icons-round stat-unit">bolt</span></div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h5 class="mb-3" style="color:var(--md-on-surface-variant)">Focus History (Last 7 Days)</h5>
+                <canvas id="focus-chart"></canvas>
+            </div>
+
+            <div class="heatmap-container">
+                <h5 class="mb-3" style="color:var(--md-on-surface-variant)">Consistency Matrix</h5>
+                <div class="heatmap" id="heatmap">
+                    <!-- Grid cells generated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- View 4: Settings -->
+        <section id="view-settings" class="view">
+            <div class="settings-section">
+                <div class="settings-title"><span class="material-icons-round">timer</span> Timer Durations</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="set-label">Focus Session</div>
+                        <div class="set-sub">Length of deep work in minutes</div>
+                    </div>
+                    <input type="number" id="set-focus-len" class="num-input" min="1" max="120" value="25">
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div class="set-label">Short Break</div>
+                        <div class="set-sub">Quick recharge in minutes</div>
+                    </div>
+                    <input type="number" id="set-short-len" class="num-input" min="1" max="30" value="5">
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div class="set-label">Long Break</div>
+                        <div class="set-sub">Extended rest after cycles</div>
+                    </div>
+                    <input type="number" id="set-long-len" class="num-input" min="1" max="60" value="15">
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div class="set-label">Cycles</div>
+                        <div class="set-sub">Pomodoros before a long break</div>
+                    </div>
+                    <input type="number" id="set-cycles" class="num-input" min="1" max="10" value="4">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-title"><span class="material-icons-round">palette</span> Appearance</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="set-label">Dark Mode</div>
+                        <div class="set-sub">Toggle dark theme manually</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="slider ripple-container"></span>
+                    </label>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div class="set-label">Accent Color</div>
+                        <div class="set-sub">Personalize your flow</div>
+                    </div>
+                    <div class="color-swatches" id="color-swatches">
+                        <!-- Colors inserted via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-title"><span class="material-icons-round">data_usage</span> Data Management</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="set-label">Erase All Data</div>
+                        <div class="set-sub text-danger">Permanent deletion of tasks and stats</div>
+                    </div>
+                    <button class="btn btn-outline-danger" id="btn-reset-data">Reset App</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Mobile Bottom Nav -->
+    <nav id="bottom-nav">
+        <a class="nav-item ripple-container active" data-target="view-timer">
+            <div class="nav-indicator"></div>
+            <span class="material-icons-round">timer</span>
+            <span>Timer</span>
+        </a>
+        <a class="nav-item ripple-container" data-target="view-tasks">
+            <div class="nav-indicator"></div>
+            <span class="material-icons-round">checklist</span>
+            <span>Tasks</span>
+        </a>
+        <a class="nav-item ripple-container" data-target="view-stats">
+            <div class="nav-indicator"></div>
+            <span class="material-icons-round">insights</span>
+            <span>Stats</span>
+        </a>
+        <a class="nav-item ripple-container" data-target="view-settings">
+            <div class="nav-indicator"></div>
+            <span class="material-icons-round">tune</span>
+            <span>Settings</span>
+        </a>
+    </nav>
+
+    <!-- JS Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+    <!-- App Logic -->
+    <script>
+        gsap.registerPlugin(ScrollTrigger, MotionPathPlugin);
+
+        // =========================================
+        // DATA MANAGEMENT & INITIALIZATION
+        // =========================================
+        const STORAGE_KEYS = {
+            tasks: 'focusflow_tasks',
+            sessions: 'focusflow_sessions',
+            settings: 'focusflow_settings'
+        };
+
+        const defaultSettings = {
+            focusLen: 25, shortLen: 5, longLen: 15, cycles: 4,
+            theme: 'light', accent: '#6750A4', soundVol: 0.5
+        };
+
+        const accentColors = ['#6750A4', '#006A6A', '#9C4146', '#206A3A', '#8F4C38', '#00629D'];
+
+        function getStore(key, fallback) {
+            try { return JSON.parse(localStorage.getItem(key)) || fallback; }
+            catch(e) { return fallback; }
+        }
+        function setStore(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+        // Seed Data if completely new
+        function initData() {
+            if(!localStorage.getItem(STORAGE_KEYS.settings)) setStore(STORAGE_KEYS.settings, defaultSettings);
+            
+            if(!localStorage.getItem(STORAGE_KEYS.tasks)) {
+                setStore(STORAGE_KEYS.tasks, [
+                    { id: crypto.randomUUID(), title: "Design onboarding flow", description: "Wireframes for new users", priority: "high", dueDate: new Date(Date.now() + 86400000).toISOString(), tags: "design,ux", pomodorosEstimated: 4, pomodorosUsed: 1, completedAt: null },
+                    { id: crypto.randomUUID(), title: "Review pull requests", description: "Check backend API changes", priority: "medium", dueDate: new Date().toISOString(), tags: "code", pomodorosEstimated: 2, pomodorosUsed: 0, completedAt: null }
+                ]);
+            }
+            if(!localStorage.getItem(STORAGE_KEYS.sessions)) {
+                const seedSessions = Array.from({ length: 14 }, (_, i) => ({
+                    date: new Date(Date.now() - (13 - i) * 86400000).toISOString().split('T')[0],
+                    pomodoros: Math.floor(Math.random() * 8) + 2,
+                    focusMinutes: (Math.floor(Math.random() * 8) + 2) * 25,
+                    tasksCompleted: Math.floor(Math.random() * 4)
+                }));
+                setStore(STORAGE_KEYS.sessions, seedSessions);
+            }
+        }
+        initData();
+
+        let appSettings = getStore(STORAGE_KEYS.settings, defaultSettings);
+        let appTasks = getStore(STORAGE_KEYS.tasks, []);
+        let appSessions = getStore(STORAGE_KEYS.sessions, []);
+
+        // Apply Theme and Accent
+        function applyTheme() {
+            document.documentElement.setAttribute('data-theme', appSettings.theme);
+            document.documentElement.style.setProperty('--md-primary', appSettings.accent);
+            
+            // Generate primary variations roughly based on accent
+            const rgb = hexToRgb(appSettings.accent);
+            if(rgb) {
+                document.documentElement.style.setProperty('--md-primary-container', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`);
+                document.documentElement.style.setProperty('--md-on-primary', appSettings.theme === 'light' ? '#fff' : '#000');
+            }
+            document.getElementById('theme-toggle').checked = appSettings.theme === 'dark';
+        }
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+        }
+
+        // =========================================
+        // UI CORE: Navigation & Transitions
+        // =========================================
+        const navItems = document.querySelectorAll('.nav-item, .sidebar-item');
+        const views = document.querySelectorAll('.view');
+        const curtain = document.getElementById('view-curtain');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                const targetId = e.currentTarget.getAttribute('data-target');
+                if(document.getElementById(targetId).classList.contains('active')) return;
+
+                // Update active states
+                navItems.forEach(nav => nav.classList.remove('active'));
+                document.querySelectorAll(`[data-target="${targetId}"]`).forEach(nav => nav.classList.add('active'));
+
+                // Transition Animation - Liquid Morph Curtain
+                const rect = e.currentTarget.getBoundingClientRect();
+                const startX = rect.left + rect.width / 2;
+                const startY = rect.top + rect.height / 2;
+                
+                curtain.style.clipPath = `circle(0% at ${startX}px ${startY}px)`;
+                
+                const tl = gsap.timeline();
+                tl.to(curtain, {
+                    clipPath: `circle(150% at ${startX}px ${startY}px)`,
+                    duration: 0.5,
+                    ease: "power4.inOut",
+                    onComplete: () => {
+                        views.forEach(v => v.classList.remove('active'));
+                        const newView = document.getElementById(targetId);
+                        newView.classList.add('active');
+                        
+                        // Trigger specific view setups
+                        if(targetId === 'view-tasks') renderTasks();
+                        if(targetId === 'view-stats') renderStats();
+
+                        // Reverse curtain
+                        gsap.to(curtain, {
+                            opacity: 0,
+                            duration: 0.4,
+                            ease: "power2.inOut",
+                            onComplete: () => {
+                                curtain.style.clipPath = `circle(0% at ${startX}px ${startY}px)`;
+                                curtain.style.opacity = 1;
+                            }
+                        });
+                    }
+                });
+            });
+        });
+
+        // Global Ripple Effect
+        document.addEventListener('mousedown', function(e) {
+            let target = e.target.closest('.ripple-container');
+            if(!target) return;
+            
+            const circle = document.createElement('span');
+            const diameter = Math.max(target.clientWidth, target.clientHeight);
+            const radius = diameter / 2;
+            const rect = target.getBoundingClientRect();
+            
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${e.clientX - rect.left - radius}px`;
+            circle.style.top = `${e.clientY - rect.top - radius}px`;
+            circle.classList.add('ripple');
+            
+            target.appendChild(circle);
+            
+            gsap.to(circle, {
+                scale: 4, opacity: 0, duration: 0.6, ease: "power2.out",
+                onComplete: () => circle.remove()
+            });
+        });
+
+        // Magnetic FAB
+        const fab = document.getElementById('fab-add-task');
+        if(fab) {
+            const xTo = gsap.quickTo(fab, "x", {duration: 0.4, ease: "power3"});
+            const yTo = gsap.quickTo(fab, "y", {duration: 0.4, ease: "power3"});
+
+            window.addEventListener('mousemove', (e) => {
+                if(window.innerWidth < 900) return; // Desktop only
+                const rect = fab.getBoundingClientRect();
+                const cx = rect.left + rect.width/2;
+                const cy = rect.top + rect.height/2;
+                const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+                
+                if(dist < 100) {
+                    xTo((e.clientX - cx) * 0.3);
+                    yTo((e.clientY - cy) * 0.3);
+                } else {
+                    xTo(0); yTo(0);
+                }
+            });
+        }
+
+        // SweetAlert Configuration
+        const Toast = Swal.mixin({
+            toast: true, position: 'bottom-end', showConfirmButton: false, timer: 3000,
+            timerProgressBar: true, customClass: { popup: 'md-toast' }
+        });
+
+        // =========================================
+        // TIMER LOGIC & ANIMATIONS
+        // =========================================
+        const timerRing = document.getElementById('timer-ring');
+        const timeDisplay = document.getElementById('time-display');
+        const sessionLabel = document.getElementById('session-label');
+        const cycleDots = document.getElementById('cycle-dots');
+        
+        let timerState = {
+            mode: 'focus', // focus, shortBreak, longBreak
+            remaining: appSettings.focusLen * 60,
+            duration: appSettings.focusLen * 60,
+            isRunning: false,
+            cycle: 0,
+            intervalId: null
+        };
+
+        const circleRadius = 45;
+        const circleCircumference = 2 * Math.PI * circleRadius;
+        timerRing.style.strokeDasharray = circleCircumference;
+        timerRing.style.strokeDashoffset = 0;
+
+        let glowAnim;
+
+        function updateTimerUI() {
+            const mins = Math.floor(timerState.remaining / 60);
+            const secs = timerState.remaining % 60;
+            timeDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            const progress = timerState.remaining / timerState.duration;
+            gsap.to(timerRing, { strokeDashoffset: circleCircumference * (1 - progress), duration: 0.5, ease: "power1.linear" });
+            
+            document.title = `${timeDisplay.textContent} - FocusFlow`;
+        }
+
+        function setTimerMode(mode) {
+            timerState.mode = mode;
+            let mins = appSettings.focusLen;
+            if(mode === 'shortBreak') mins = appSettings.shortLen;
+            if(mode === 'longBreak') mins = appSettings.longLen;
+            
+            timerState.duration = mins * 60;
+            timerState.remaining = timerState.duration;
+            
+            document.querySelectorAll('.timer-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+            
+            const labels = { focus: 'Focus Session', shortBreak: 'Short Break', longBreak: 'Long Break' };
+            sessionLabel.textContent = labels[mode];
+            
+            // Adjust ring color
+            const color = mode === 'focus' ? 'var(--md-primary)' : (mode === 'shortBreak' ? 'var(--md-success)' : 'var(--md-secondary)');
+            gsap.to(timerRing, { stroke: color, duration: 0.3 });
+            
+            // Render cycles
+            cycleDots.innerHTML = '';
+            for(let i=0; i<appSettings.cycles; i++) {
+                cycleDots.innerHTML += `<div class="pomo-dot ${i < timerState.cycle ? 'filled' : ''}"></div>`;
+            }
+
+            // Glow logic
+            if(glowAnim) glowAnim.kill();
+            timerRing.style.filter = 'none';
+            if(mode === 'focus' && timerState.isRunning) {
+                glowAnim = gsap.timeline({ repeat: -1, yoyo: true })
+                    .fromTo(timerRing, 
+                        { filter: 'drop-shadow(0 0 5px var(--md-primary))' },
+                        { filter: 'drop-shadow(0 0 24px var(--md-primary)) drop-shadow(0 0 48px var(--md-primary))', duration: 2, ease: 'sine.inOut' }
+                    );
+            }
+
+            updateTimerUI();
+            pauseTimer();
+            animateQuote();
+        }
+
+        const quotes = [
+            "Focus is a muscle. Build it.", "Deep work produces true value.", "One thing at a time.",
+            "Distractions are the enemy of progress.", "Flow state activated.", "Small steps, big impact.",
+            "Rest is part of the process.", "Execute with intention."
+        ];
+        function animateQuote() {
+            const q = quotes[Math.floor(Math.random() * quotes.length)];
+            const qBox = document.getElementById('quote-box');
+            qBox.innerHTML = q.split(' ').map(w => `<span class="quote-word">${w}&nbsp;</span>`).join('');
+            
+            gsap.from(qBox.querySelectorAll('.quote-word'), {
+                y: 20, opacity: 0, rotateZ: () => gsap.utils.random(-8, 8),
+                duration: 0.5, stagger: 0.06, ease: 'back.out(2)'
+            });
+        }
+
+        function playSoundBeep() {
+            const actx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            osc.connect(gain); gain.connect(actx.destination);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(800, actx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, actx.currentTime + 0.5);
+            gain.gain.setValueAtTime(1, actx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.5);
+            osc.start(); osc.stop(actx.currentTime + 0.5);
+        }
+
+        function createParticleBurst() {
+            const rect = document.querySelector('.timer-container').getBoundingClientRect();
+            const cx = rect.left + rect.width/2;
+            const cy = rect.top + rect.height/2;
+            const colors = [appSettings.accent, '#CCC2DC', '#FFC107', '#FF6B6B'];
+
+            for(let i=0; i<40; i++) {
+                const p = document.createElement('div');
+                p.style.position = 'absolute';
+                p.style.width = p.style.height = `${gsap.utils.random(4, 12)}px`;
+                p.style.backgroundColor = colors[Math.floor(Math.random()*colors.length)];
+                p.style.borderRadius = '50%';
+                p.style.left = `${cx}px`; p.style.top = `${cy}px`;
+                document.getElementById('particles').appendChild(p);
+
+                const angle = gsap.utils.random(0, Math.PI * 2);
+                const dist = gsap.utils.random(80, 250);
+                
+                gsap.to(p, {
+                    x: Math.cos(angle) * dist, y: Math.sin(angle) * dist,
+                    opacity: 0, scale: 0, duration: gsap.utils.random(1, 2),
+                    ease: "expo.out", onComplete: () => p.remove()
+                });
+            }
+        }
+
+        function logSession() {
+            if(timerState.mode !== 'focus') return;
+            const today = new Date().toISOString().split('T')[0];
+            let todaySession = appSessions.find(s => s.date === today);
+            
+            if(!todaySession) {
+                todaySession = { date: today, pomodoros: 0, focusMinutes: 0, tasksCompleted: 0 };
+                appSessions.push(todaySession);
+            }
+            
+            todaySession.pomodoros++;
+            todaySession.focusMinutes += appSettings.focusLen;
+            setStore(STORAGE_KEYS.sessions, appSessions);
+        }
+
+        function timerComplete() {
+            pauseTimer();
+            playSoundBeep();
+            createParticleBurst();
+            
+            if(timerState.mode === 'focus') {
+                logSession();
+                timerState.cycle++;
+                Toast.fire({ icon: 'success', title: 'Session Complete!' });
+                
+                if(timerState.cycle >= appSettings.cycles) {
+                    setTimerMode('longBreak');
+                    timerState.cycle = 0;
+                } else {
+                    setTimerMode('shortBreak');
+                }
+            } else {
+                Toast.fire({ icon: 'info', title: 'Break Over. Back to work!' });
+                setTimerMode('focus');
+            }
+        }
+
+        function startTimer() {
+            if(timerState.remaining <= 0) return;
+            timerState.isRunning = true;
+            document.getElementById('play-icon').textContent = 'pause';
+            if(timerState.mode==='focus' && !glowAnim) {
+                glowAnim = gsap.timeline({ repeat: -1, yoyo: true })
+                    .fromTo(timerRing, { filter: 'drop-shadow(0 0 5px var(--md-primary))' },
+                    { filter: 'drop-shadow(0 0 24px var(--md-primary)) drop-shadow(0 0 48px var(--md-primary))', duration: 2, ease: 'sine.inOut' });
+            }
+            
+            const expectedEnd = Date.now() + timerState.remaining * 1000;
+            
+            timerState.intervalId = setInterval(() => {
+                timerState.remaining = Math.round((expectedEnd - Date.now()) / 1000);
+                if(timerState.remaining <= 0) {
+                    timerState.remaining = 0;
+                    timerComplete();
+                }
+                updateTimerUI();
+            }, 250); // High frequency for smooth UI, relies on Date.now() for accuracy
+        }
+
+        function pauseTimer() {
+            timerState.isRunning = false;
+            clearInterval(timerState.intervalId);
+            document.getElementById('play-icon').textContent = 'play_arrow';
+            if(glowAnim) { glowAnim.kill(); glowAnim = null; timerRing.style.filter = 'none'; }
+        }
+
+        document.getElementById('btn-play').addEventListener('click', () => {
+            timerState.isRunning ? pauseTimer() : startTimer();
+        });
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            setTimerMode(timerState.mode);
+        });
+        document.getElementById('btn-skip').addEventListener('click', () => {
+            timerState.remaining = 0; timerComplete();
+        });
+        document.querySelectorAll('.timer-tab').forEach(t => {
+            t.addEventListener('click', (e) => setTimerMode(e.currentTarget.getAttribute('data-mode')));
+        });
+
+        // Initialize Timer View
+        setTimerMode('focus');
+
+        // =========================================
+        // AMBIENT AUDIO ENGINE (Web Audio API Synthesizer)
+        // =========================================
+        const AudioEngine = {
+            ctx: null, nodes: {}, active: {}, masterVol: appSettings.soundVol,
+            init() {
+                if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if(this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            generateNoise(type = 'white') {
+                const bufferSize = this.ctx.sampleRate * 2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for(let i=0; i<bufferSize; i++) {
+                    if(type === 'white') data[i] = Math.random() * 2 - 1;
+                    else if(type === 'brown') {
+                        let lastOut = 0;
+                        const white = Math.random() * 2 - 1;
+                        data[i] = (lastOut + (0.02 * white)) / 1.02;
+                        lastOut = data[i];
+                        data[i] *= 3.5; 
+                    }
+                }
+                const source = this.ctx.createBufferSource();
+                source.buffer = buffer; source.loop = true;
+                return source;
+            },
+            play(soundId, volume) {
+                this.init();
+                if(this.active[soundId]) return;
+                
+                const gain = this.ctx.createGain();
+                gain.gain.value = volume * this.masterVol;
+                gain.connect(this.ctx.destination);
+                
+                let source, filter;
+
+                if(soundId === 'rain') {
+                    source = this.generateNoise('white');
+                    filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass'; filter.frequency.value = 1000;
+                    source.connect(filter); filter.connect(gain);
+                } 
+                else if(soundId === 'ocean') {
+                    source = this.generateNoise('brown');
+                    filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass'; filter.frequency.value = 400;
+                    
+                    const lfo = this.ctx.createOscillator();
+                    lfo.type = 'sine'; lfo.frequency.value = 0.1;
+                    const lfoGain = this.ctx.createGain();
+                    lfoGain.gain.value = 300;
+                    lfo.connect(lfoGain); lfoGain.connect(filter.frequency);
+                    lfo.start();
+                    
+                    source.connect(filter); filter.connect(gain);
+                    this.nodes[`${soundId}_lfo`] = lfo;
+                }
+                else if(soundId === 'fire') {
+                    source = this.generateNoise('brown');
+                    filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass'; filter.frequency.value = 200;
+                    
+                    // Crackle mock
+                    const crackle = this.ctx.createOscillator();
+                    crackle.type = 'square'; crackle.frequency.value = 1;
+                    const crackleGain = this.ctx.createGain();
+                    crackleGain.gain.value = 0.1;
+                    crackle.connect(crackleGain); crackleGain.connect(gain);
+                    crackle.start();
+                    
+                    source.connect(filter); filter.connect(gain);
+                    this.nodes[`${soundId}_crackle`] = crackle;
+                }
+                else {
+                    // Fallback to simple noise for Cafe/Forest to save complexity
+                    source = this.generateNoise('brown');
+                    filter = this.ctx.createBiquadFilter();
+                    filter.type = soundId === 'forest' ? 'highpass' : 'lowpass';
+                    filter.frequency.value = soundId === 'forest' ? 2000 : 800;
+                    source.connect(filter); filter.connect(gain);
+                }
+
+                source.start();
+                this.nodes[soundId] = { source, gain };
+                this.active[soundId] = true;
+            },
+            stop(soundId) {
+                if(!this.nodes[soundId]) return;
+                this.nodes[soundId].gain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.5);
+                setTimeout(() => {
+                    if(this.nodes[soundId]) {
+                        this.nodes[soundId].source.stop();
+                        delete this.nodes[soundId];
+                        if(this.nodes[`${soundId}_lfo`]) this.nodes[`${soundId}_lfo`].stop();
+                        if(this.nodes[`${soundId}_crackle`]) this.nodes[`${soundId}_crackle`].stop();
+                    }
+                }, 500);
+                this.active[soundId] = false;
+            },
+            setVolume(soundId, vol) {
+                if(this.nodes[soundId]) {
+                    this.nodes[soundId].gain.gain.setTargetAtTime(vol * this.masterVol, this.ctx.currentTime, 0.1);
+                }
+            }
+        };
+
+        document.querySelectorAll('.mixer-icon').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                const sound = e.currentTarget.getAttribute('data-sound');
+                const volInput = document.querySelector(`.sound-vol[data-sound="${sound}"]`);
+                if(icon.classList.contains('active')) {
+                    icon.classList.remove('active');
+                    AudioEngine.stop(sound);
+                } else {
+                    icon.classList.add('active');
+                    AudioEngine.play(sound, parseFloat(volInput.value));
+                }
+            });
+        });
+
+        document.querySelectorAll('.sound-vol').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                const sound = e.target.getAttribute('data-sound');
+                if(AudioEngine.active[sound]) AudioEngine.setVolume(sound, parseFloat(e.target.value));
+            });
+        });
+
+        // =========================================
+        // TASKS LOGIC
+        // =========================================
+        let currentTaskFilter = 'all';
+
+        function renderTasks() {
+            const list = document.getElementById('task-list');
+            const empty = document.getElementById('task-empty');
+            list.innerHTML = '';
+
+            let filtered = appTasks;
+            if(currentTaskFilter === 'today') {
+                const today = new Date().toISOString().split('T')[0];
+                filtered = appTasks.filter(t => t.dueDate && t.dueDate.startsWith(today) && !t.completedAt);
+            } else if(currentTaskFilter === 'upcoming') {
+                const today = new Date().toISOString().split('T')[0];
+                filtered = appTasks.filter(t => t.dueDate && t.dueDate > today && !t.completedAt);
+            } else if(currentTaskFilter === 'completed') {
+                filtered = appTasks.filter(t => t.completedAt);
+            } else {
+                filtered = appTasks.filter(t => !t.completedAt);
+            }
+
+            if(filtered.length === 0) {
+                empty.style.display = 'block';
+            } else {
+                empty.style.display = 'none';
+                
+                filtered.forEach(task => {
+                    const card = document.createElement('div');
+                    card.className = 'task-card';
+                    card.dataset.id = task.id;
+                    
+                    const pDots = Array.from({length: task.pomodorosEstimated}, (_,i) => 
+                        `<div class="pomo-dot ${i < task.pomodorosUsed ? 'filled' : ''}"></div>`
+                    ).join('');
+
+                    card.innerHTML = `
+                        <div class="delete-bg"><span class="material-icons-round">delete</span></div>
+                        <div class="task-checkbox ${task.completedAt ? 'checked' : ''}">
+                            ${task.completedAt ? '<span class="material-icons-round" style="font-size:16px;">check</span>' : ''}
+                        </div>
+                        <div class="task-content">
+                            <div class="task-title">${task.title}</div>
+                            <div class="task-meta mt-1">
+                                <div class="priority-dot p-${task.priority}"></div>
+                                ${task.dueDate ? `<span>${new Date(task.dueDate).toLocaleDateString()}</span>` : ''}
+                                ${task.tags ? `<span class="chip" style="padding: 2px 6px; font-size: 10px;">${task.tags}</span>` : ''}
+                                <div class="task-pomodoros ms-auto">${pDots}</div>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                    
+                    // Swipe to delete logic
+                    let startX = 0, currentX = 0;
+                    card.addEventListener('pointerdown', e => {
+                        if(e.target.closest('.task-checkbox')) return;
+                        startX = e.clientX;
+                        card.setPointerCapture(e.pointerId);
+                    });
+                    card.addEventListener('pointermove', e => {
+                        if(!startX) return;
+                        currentX = e.clientX - startX;
+                        if(currentX < 0 && currentX > -100) {
+                            gsap.set(card.querySelector('.task-content'), {x: currentX});
+                            gsap.set(card.querySelector('.task-checkbox'), {x: currentX});
+                        }
+                    });
+                    card.addEventListener('pointerup', e => {
+                        if(!startX) return;
+                        if(currentX < -60) {
+                            deleteTask(task.id, card);
+                        } else {
+                            gsap.to(card.querySelectorAll('.task-content, .task-checkbox'), {x: 0, duration: 0.3, ease: 'back.out'});
+                        }
+                        startX = 0; currentX = 0;
+                        card.releasePointerCapture(e.pointerId);
+                    });
+                    
+                    // Checkbox logic
+                    card.querySelector('.task-checkbox').addEventListener('click', () => toggleTaskCompletion(task.id, card));
+                });
+
+                // 3D Flip-In Stagger Animation
+                gsap.from('.task-card', {
+                    rotateX: -90, transformOrigin: 'top center', opacity: 0,
+                    duration: 0.5, stagger: 0.07, ease: 'back.out(1.5)'
+                });
+            }
+        }
+
+        document.querySelectorAll('.task-filters .chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                document.querySelectorAll('.task-filters .chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                currentTaskFilter = chip.getAttribute('data-filter');
+                renderTasks();
+            });
+        });
+
+        function toggleTaskCompletion(id, cardElement) {
+            const task = appTasks.find(t => t.id === id);
+            if(!task) return;
+            
+            if(!task.completedAt) {
+                cardElement.classList.add('completing');
+                task.completedAt = new Date().toISOString();
+                
+                // Update stats
+                const today = task.completedAt.split('T')[0];
+                let todaySession = appSessions.find(s => s.date === today);
+                if(!todaySession) {
+                    todaySession = { date: today, pomodoros: 0, focusMinutes: 0, tasksCompleted: 0 };
+                    appSessions.push(todaySession);
+                }
+                todaySession.tasksCompleted++;
+                setStore(STORAGE_KEYS.sessions, appSessions);
+
+                setTimeout(() => {
+                    gsap.to(cardElement, {
+                        x: 100, opacity: 0, duration: 0.4, ease: 'power2.in',
+                        onComplete: () => {
+                            setStore(STORAGE_KEYS.tasks, appTasks);
+                            renderTasks();
+                            Toast.fire({ icon: 'success', title: 'Task Crushed! 🎉' });
+                        }
+                    });
+                }, 400); // Wait for strikethrough anim
+            } else {
+                task.completedAt = null;
+                setStore(STORAGE_KEYS.tasks, appTasks);
+                renderTasks();
+            }
+        }
+
+        function deleteTask(id, cardElement) {
+            appTasks = appTasks.filter(t => t.id !== id);
+            setStore(STORAGE_KEYS.tasks, appTasks);
+            gsap.to(cardElement, {
+                height: 0, opacity: 0, margin: 0, padding: 0, duration: 0.3,
+                onComplete: () => renderTasks()
+            });
+        }
+
+        document.getElementById('fab-add-task').addEventListener('click', () => {
+            Swal.fire({
+                title: 'New Task',
+                html: `
+                    <div class="md-field mt-3">
+                        <input type="text" id="swal-title" placeholder=" " required>
+                        <label>Task Title</label>
+                    </div>
+                    <div class="md-field">
+                        <input type="date" id="swal-date" placeholder=" ">
+                        <label>Due Date</label>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <label class="set-sub">Priority</label>
+                        <select id="swal-priority" style="background:var(--md-surface); color:var(--md-on-surface); border:1px solid var(--md-outline); border-radius:4px; padding:4px;">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label class="set-sub">Est. Pomodoros</label>
+                        <input type="number" id="swal-pomos" value="2" min="1" max="10" class="num-input" style="width:60px; padding:4px;">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                preConfirm: () => {
+                    const title = document.getElementById('swal-title').value;
+                    if(!title) { Swal.showValidationMessage('Title is required'); return false; }
+                    return {
+                        id: crypto.randomUUID(),
+                        title: title,
+                        dueDate: document.getElementById('swal-date').value || null,
+                        priority: document.getElementById('swal-priority').value,
+                        pomodorosEstimated: parseInt(document.getElementById('swal-pomos').value),
+                        pomodorosUsed: 0,
+                        completedAt: null
+                    };
+                }
+            }).then((result) => {
+                if(result.isConfirmed) {
+                    appTasks.unshift(result.value);
+                    setStore(STORAGE_KEYS.tasks, appTasks);
+                    currentTaskFilter = 'all';
+                    document.querySelectorAll('.task-filters .chip').forEach(c => c.classList.remove('active'));
+                    document.querySelector('.task-filters .chip[data-filter="all"]').classList.add('active');
+                    renderTasks();
+                }
+            });
+        });
+
+        // =========================================
+        // ANALYTICS LOGIC (Stats, Chart, Heatmap)
+        // =========================================
+        function renderStats() {
+            // Aggregate totals
+            let totalPomos = 0, totalMins = 0, totalTasks = 0;
+            appSessions.forEach(s => {
+                totalPomos += s.pomodoros;
+                totalMins += s.focusMinutes;
+                totalTasks += s.tasksCompleted;
+            });
+            
+            // Streak Calculation
+            let streak = 0;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const sortedSessions = [...appSessions].sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            let checkDate = new Date(todayStr);
+            for(let s of sortedSessions) {
+                if(s.date === checkDate.toISOString().split('T')[0] && s.pomodoros > 0) {
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else if(s.date < checkDate.toISOString().split('T')[0]) {
+                    break;
+                }
+            }
+
+            // Animate Numbers
+            const animNumbers = (id, val) => {
+                const el = document.getElementById(id);
+                const proxy = { v: parseInt(el.textContent) || 0 };
+                gsap.to(proxy, {
+                    v: val, duration: 1.5, ease: 'power2.out',
+                    onUpdate: () => el.textContent = Math.round(proxy.v)
+                });
+            };
+
+            animNumbers('stat-pomos', totalPomos);
+            animNumbers('stat-hours', Math.floor(totalMins / 60));
+            animNumbers('stat-mins', totalMins % 60);
+            animNumbers('stat-tasks', totalTasks);
+            animNumbers('stat-streak', streak);
+
+            // Render Chart (Pure Canvas)
+            const canvas = document.getElementById('focus-chart');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.parentElement.getBoundingClientRect();
+            
+            // Handle high DPI
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = 250 * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `250px`;
+
+            const cw = rect.width; const ch = 250;
+            ctx.clearRect(0, 0, cw, ch);
+
+            // Get last 7 days data
+            const last7Days = Array.from({length:7}, (_,i) => {
+                const d = new Date(); d.setDate(d.getDate() - (6 - i));
+                return d.toISOString().split('T')[0];
+            });
+            
+            const chartData = last7Days.map(date => {
+                const s = appSessions.find(x => x.date === date);
+                return s ? Math.round(s.focusMinutes / 60 * 10) / 10 : 0; // Hours
+            });
+            
+            const maxVal = Math.max(...chartData, 4); // Min 4h scale
+            const barW = Math.min(40, (cw - 40) / 7 - 10);
+            const gap = (cw - 40 - (barW * 7)) / 6;
+
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--md-primary').trim();
+            const surfaceVar = getComputedStyle(document.documentElement).getPropertyValue('--md-surface-variant').trim();
+            const textColor = getComputedStyle(document.documentElement).getPropertyValue('--md-on-surface-variant').trim();
+
+            ctx.fillStyle = textColor;
+            ctx.font = '12px Inter';
+            ctx.textAlign = 'center';
+
+            chartData.forEach((val, i) => {
+                const h = (val / maxVal) * (ch - 40);
+                const x = 20 + i * (barW + gap);
+                const y = ch - 20 - h;
+
+                // Animate bars using GSAP via proxy object array
+                const barProxy = { h: 0 };
+                gsap.to(barProxy, {
+                    h: h, duration: 1, delay: i * 0.1, ease: 'power3.out',
+                    onUpdate: () => {
+                        // Redraw this specific bar area (simplified for canvas)
+                        ctx.clearRect(x, 0, barW, ch - 20);
+                        
+                        // Background track
+                        ctx.fillStyle = surfaceVar;
+                        ctx.beginPath(); ctx.roundRect(x, 20, barW, ch - 40, 4); ctx.fill();
+                        
+                        // Value Bar
+                        const gradient = ctx.createLinearGradient(0, ch-20, 0, ch-20-barProxy.h);
+                        gradient.addColorStop(0, primaryColor);
+                        gradient.addColorStop(1, primaryColor); // Can add gradient effects here
+                        ctx.fillStyle = gradient;
+                        
+                        ctx.beginPath();
+                        ctx.roundRect(x, ch - 20 - barProxy.h, barW, barProxy.h, 4);
+                        ctx.fill();
+
+                        // Label
+                        const dayLabel = new Date(last7Days[i]).toLocaleDateString('en-US', {weekday:'short'});
+                        ctx.fillStyle = textColor;
+                        ctx.clearRect(x-10, ch-15, barW+20, 15);
+                        ctx.fillText(dayLabel, x + barW/2, ch - 5);
+                    }
+                });
+            });
+
+            // Render Heatmap (CSS Grid)
+            const mapContainer = document.getElementById('heatmap');
+            mapContainer.innerHTML = '';
+            
+            // Generate 70 days (10 weeks * 7 days)
+            const mapDays = 70;
+            const mapData = [];
+            for(let i=mapDays-1; i>=0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const dStr = d.toISOString().split('T')[0];
+                const s = appSessions.find(x => x.date === dStr);
+                mapData.push({ date: dStr, count: s ? s.pomodoros : 0 });
+            }
+
+            mapData.forEach((data, i) => {
+                const cell = document.createElement('div');
+                cell.className = 'heatmap-cell';
+                let level = 0;
+                if(data.count >= 7) level = 4;
+                else if(data.count >= 5) level = 3;
+                else if(data.count >= 3) level = 2;
+                else if(data.count >= 1) level = 1;
+                
+                if(level > 0) cell.setAttribute('data-level', level);
+                
+                cell.innerHTML = `<div class="heat-tooltip">${data.count} Pomodoros<br>${new Date(data.date).toLocaleDateString()}</div>`;
+                mapContainer.appendChild(cell);
+            });
+
+            // Stagger reveal heatmap cells
+            gsap.from('.heatmap-cell', {
+                scale: 0, opacity: 0, duration: 0.3,
+                stagger: { amount: 1, from: 'start', grid: [10,7] },
+                ease: 'back.out(2)'
+            });
+        }
+
+        // Handle window resize for canvas
+        window.addEventListener('resize', () => {
+            if(document.getElementById('view-stats').classList.contains('active')) {
+                renderStats(); // Re-render canvas properly
+            }
+        });
+
+        // =========================================
+        // SETTINGS LOGIC
+        // =========================================
+        
+        // Setup Swatches
+        const swatchContainer = document.getElementById('color-swatches');
+        accentColors.forEach(color => {
+            const s = document.createElement('div');
+            s.className = `swatch ${color === appSettings.accent ? 'active' : ''}`;
+            s.style.backgroundColor = color;
+            s.dataset.color = color;
+            s.addEventListener('click', () => {
+                document.querySelectorAll('.swatch').forEach(sw => sw.classList.remove('active'));
+                s.classList.add('active');
+                appSettings.accent = color;
+                setStore(STORAGE_KEYS.settings, appSettings);
+                applyTheme();
+                
+                // Animate change
+                gsap.from('body', { backgroundColor: color, duration: 0.5, clearProps: 'all' });
+            });
+            swatchContainer.appendChild(s);
+        });
+
+        // Theme Toggle
+        document.getElementById('theme-toggle').addEventListener('change', (e) => {
+            appSettings.theme = e.target.checked ? 'dark' : 'light';
+            setStore(STORAGE_KEYS.settings, appSettings);
+            
+            // MotionPath Dark Mode Wipe transition simulation
+            const toggleRect = e.target.getBoundingClientRect();
+            const startX = toggleRect.left + toggleRect.width/2;
+            const startY = toggleRect.top + toggleRect.height/2;
+            
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0'; overlay.style.left = '0';
+            overlay.style.width = '100vw'; overlay.style.height = '100vh';
+            overlay.style.backgroundColor = appSettings.theme === 'dark' ? '#1C1B1F' : '#FFFBFE';
+            overlay.style.zIndex = '9998';
+            overlay.style.pointerEvents = 'none';
+            overlay.style.clipPath = `circle(0px at ${startX}px ${startY}px)`;
+            document.body.appendChild(overlay);
+
+            gsap.to(overlay, {
+                clipPath: `circle(150vw at ${startX}px ${startY}px)`,
+                duration: 0.8,
+                ease: 'power3.inOut',
+                onComplete: () => {
+                    applyTheme();
+                    gsap.to(overlay, {opacity: 0, duration: 0.3, onComplete: () => overlay.remove()});
+                }
+            });
+        });
+
+        // Durations
+        ['focus', 'short', 'long', 'cycles'].forEach(key => {
+            const input = document.getElementById(`set-${key}${key==='cycles'?'':'-len'}`);
+            input.value = appSettings[`${key}Len`] || appSettings[key];
+            input.addEventListener('change', (e) => {
+                const val = parseInt(e.target.value);
+                if(val > 0) {
+                    if(key === 'cycles') appSettings.cycles = val;
+                    else appSettings[`${key}Len`] = val;
+                    setStore(STORAGE_KEYS.settings, appSettings);
+                    if(timerState.mode.includes(key) || (key==='focus' && timerState.mode==='focus')) {
+                        setTimerMode(timerState.mode); // Reset current timer to new length
+                    }
+                }
+            });
+        });
+
+        // Reset Data
+        document.getElementById('btn-reset-data').addEventListener('click', () => {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will permanently delete all tasks and statistics. Settings will be kept.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: 'var(--md-error)',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    appTasks = []; appSessions = [];
+                    setStore(STORAGE_KEYS.tasks, appTasks);
+                    setStore(STORAGE_KEYS.sessions, appSessions);
+                    Toast.fire({ icon: 'success', title: 'Data cleared successfully' });
+                    if(document.getElementById('view-stats').classList.contains('active')) renderStats();
+                    if(document.getElementById('view-tasks').classList.contains('active')) renderTasks();
+                }
+            });
+        });
+
+        // Initial Setup
+        applyTheme();
+
+    </script>
+</body>
+</html>
