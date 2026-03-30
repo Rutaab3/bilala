@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Hub</title>
+    <style>
+        /* Modern CSS Styles */
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --text: #1e293b;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        p {
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+            color: #1e293b;
+        }
+
+        /* Status Message */
+        #status {
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>App Dashboard</h1>
+        <p>Welcome! Please select the application you wish to launch.</p>
+        
+        <nav class="nav-links">
+            <!-- Standard relative links as requested -->
+            <a href="app1.html" class="btn" onclick="handleLink(event, 'App 1')">Launch App 1</a>
+            <a href="app2.html" class="btn btn-secondary" onclick="handleLink(event, 'App 2')">Launch App 2</a>
+        </nav>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        /**
+         * In a real environment, these links would look for local files.
+         * For this preview, we intercept the click to show they are working.
+         */
+        function handleLink(e, appName) {
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.style.backgroundColor = '#f0fdf4';
+            status.style.color = '#166534';
+            status.textContent = `Navigating to ${appName} (app#.html)...`;
+            
+            // In a real multi-file project, the browser would follow the href.
+            // We preventDefault here just so you stay on this page in the preview.
+            e.preventDefault(); 
+            
+            console.log(`Navigation triggered for: ${appName}`);
+        }
+    </script>
+</body>
+</html>
