@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EFFECT/S — Interactive Playground</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --fg: #f0ede6;
+    --accent: #c8ff00;
+    --muted: #3a3a3a;
+    --dim: #888;
+    --card: #141414;
+    --border: #222;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'DM Mono', monospace;
+    cursor: none;
+    overflow-x: hidden;
+  }
+
+  /* ── CUSTOM CURSOR ─────────────────── */
+  #cursor-ring {
+    position: fixed; top: 0; left: 0; z-index: 9999;
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s, background 0.2s, border-color 0.2s;
+  }
+  #cursor-dot {
+    position: fixed; top: 0; left: 0; z-index: 10000;
+    width: 5px; height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+  body.hovering #cursor-ring {
+    width: 54px; height: 54px;
+    background: rgba(200, 255, 0, 0.08);
+  }
+
+  /* ── CURSOR TRAIL ──────────────────── */
+  .trail-particle {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9990;
+    transform: translate(-50%, -50%);
+    will-change: transform, opacity;
+  }
+
+  /* ── NAV ───────────────────────────── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.4rem 3rem;
+    border-bottom: 0.5px solid var(--border);
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(12px);
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 18px;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+  }
+  .nav-logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--dim); text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--fg); }
+
+  /* ── HERO ──────────────────────────── */
+  #hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 8rem 2rem 4rem;
+    position: relative; overflow: hidden;
+  }
+
+  .hero-tag {
+    display: inline-block;
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent);
+    border: 0.5px solid rgba(200,255,0,0.3);
+    padding: 5px 14px; border-radius: 100px;
+    margin-bottom: 2rem;
+    opacity: 0; animation: fadeUp 0.6s 0.2s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(52px, 10vw, 110px);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    opacity: 0; animation: fadeUp 0.8s 0.4s forwards;
+  }
+  .hero-title em { font-style: normal; color: var(--accent); }
+
+  .hero-sub {
+    margin-top: 2rem;
+    font-size: 13px; color: var(--dim); max-width: 460px;
+    line-height: 1.8;
+    opacity: 0; animation: fadeUp 0.6s 0.7s forwards;
+  }
+
+  .scroll-hint {
+    position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim);
+    opacity: 0; animation: fadeUp 0.6s 1.2s forwards;
+  }
+  .scroll-line {
+    width: 0.5px; height: 40px; background: linear-gradient(to bottom, var(--accent), transparent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* ── SECTION BASE ──────────────────── */
+  .section {
+    padding: 7rem 3rem;
+    border-top: 0.5px solid var(--border);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .section-number {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: clamp(28px, 4vw, 48px);
+    letter-spacing: -0.03em; margin-bottom: 0.5rem;
+  }
+  .section-desc {
+    font-size: 12px; color: var(--dim); margin-bottom: 3rem; max-width: 480px; line-height: 1.8;
+  }
+
+  /* ── BENTO GALLERY ─────────────────── */
+  #bento-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: 180px 140px;
+    gap: 6px;
+  }
+  .bento-item {
+    border-radius: 10px;
+    overflow: hidden; position: relative;
+    display: flex; align-items: flex-end; padding: 14px;
+    cursor: none;
+    transition: transform 0.4s cubic-bezier(.22,1,.36,1), filter 0.3s ease;
+  }
+  .bento-item:nth-child(1) { grid-column: span 2; }
+  .bento-item:nth-child(4) { grid-column: span 2; }
+  .bento-item:nth-child(6) { grid-column: span 3; }
+  .bento-item-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    position: relative; z-index: 1;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+    opacity: 0; transform: translateY(6px);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .bento-item:hover .bento-item-label { opacity: 1; transform: translateY(0); }
+  .bento-item::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .bento-item:hover::after { opacity: 1; }
+
+  /* bento velocity overlay */
+  .bento-item::before {
+    content: ''; position: absolute; inset: 0; z-index: 2;
+    background: rgba(200,255,0,0); transition: background 0.1s;
+  }
+
+  /* ── PREVIEW LINKS ─────────────────── */
+  .preview-links-row {
+    display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;
+  }
+  .preview-link {
+    font-size: 13px; padding: 10px 20px;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--fg); text-decoration: none;
+    display: flex; align-items: center; gap: 8px;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: none;
+  }
+  .preview-link:hover { border-color: var(--muted); background: var(--card); }
+  .preview-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Floating preview card */
+  #float-preview {
+    position: fixed; z-index: 8000; pointer-events: none;
+    width: 200px; height: 130px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 0.5px solid rgba(255,255,255,0.1);
+    opacity: 0;
+    transform: scale(0.88) rotate(-2deg) translateY(8px);
+    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+  }
+  #float-preview.show {
+    opacity: 1;
+    transform: scale(1) rotate(0deg) translateY(0);
+  }
+  #float-preview-inner {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px;
+  }
+  #float-preview-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 700;
+    color: rgba(255,255,255,0.95);
+  }
+  #float-preview-tag {
+    font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* ── MORPHING SHAPE ────────────────── */
+  #morph-section-inner {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;
+  }
+  #morph-canvas {
+    display: flex; align-items: center; justify-content: center;
+    cursor: none;
+  }
+  #morph-svg path { transition: d 0.7s cubic-bezier(.34,1.2,.64,1), fill 0.7s ease; }
+  .morph-info { display: flex; flex-direction: column; gap: 1.5rem; }
+  .morph-stat {
+    padding: 1.2rem;
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+  }
+  .morph-stat-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
+  .morph-stat-value { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; }
+  .morph-hint { font-size: 11px; color: var(--dim); line-height: 1.8; }
+
+  /* ── FOOTER BOUNCE ─────────────────── */
+  #footer-full {
+    border-top: 0.5px solid var(--border);
+    padding: 3rem 3rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .footer-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3rem; }
+  .footer-brand {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px;
+    letter-spacing: -0.02em;
+  }
+  .footer-brand span { color: var(--accent); }
+  .footer-tagline { font-size: 11px; color: var(--dim); margin-top: 6px; line-height: 1.7; max-width: 260px; }
+  .footer-cols { display: flex; gap: 4rem; }
+  .footer-col-title { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--dim); margin-bottom: 1rem; }
+  .footer-links { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .footer-links a {
+    font-size: 13px; color: var(--fg); text-decoration: none;
+    display: inline-block;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--accent); }
+
+  .footer-bottom {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 2rem; border-top: 0.5px solid var(--border);
+  }
+  .footer-copy { font-size: 11px; color: var(--dim); }
+  .footer-bottom-links { display: flex; gap: 1.5rem; }
+  .footer-bottom-links a { font-size: 11px; color: var(--dim); text-decoration: none; }
+  .footer-bottom-links a:hover { color: var(--fg); }
+
+  /* bounce class */
+  .bounce-word {
+    display: inline-block;
+    cursor: none;
+  }
+  @keyframes wordBounce {
+    0%   { transform: translateY(0); }
+    35%  { transform: translateY(-12px); }
+    65%  { transform: translateY(-5px); }
+    85%  { transform: translateY(-2px); }
+    100% { transform: translateY(0); }
+  }
+  .bounce-word.bouncing {
+    animation: wordBounce 0.55s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+
+  /* ── KEYFRAMES ─────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── RESPONSIVE ────────────────────── */
+  @media (max-width: 800px) {
+    nav { padding: 1.2rem 1.5rem; }
+    .section { padding: 5rem 1.5rem; }
+    #bento-grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: auto; }
+    .bento-item:nth-child(1),
+    .bento-item:nth-child(4),
+    .bento-item:nth-child(6) { grid-column: span 1; }
+    #morph-section-inner { grid-template-columns: 1fr; }
+    .footer-top { flex-direction: column; gap: 2rem; }
+    .footer-cols { flex-wrap: wrap; gap: 2rem; }
+    #footer-full { padding: 3rem 1.5rem 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="cursor-ring"></div>
+<div id="cursor-dot"></div>
+
+<!-- FLOAT PREVIEW -->
+<div id="float-preview">
+  <div id="float-preview-inner">
+    <div id="float-preview-title">Preview</div>
+    <div id="float-preview-tag">hover</div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">EFFECT<span>/</span>S</div>
+  <ul class="nav-links">
+    <li><a href="#trail">Trail</a></li>
+    <li><a href="#preview">Preview</a></li>
+    <li><a href="#bento">Bento</a></li>
+    <li><a href="#morph">Morph</a></li>
+    <li><a href="#footer-full">Footer</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-tag">Five effects · One page</div>
+  <h1 class="hero-title">Move.<br><em>React.</em><br>Surprise.</h1>
+  <p class="hero-sub">A playground for five advanced cursor and UI effects — trail, tracking preview, velocity bento, morphing, and footer bounce.</p>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    scroll
+  </div>
+</section>
+
+<!-- ── EFFECT 01: CURSOR TRAIL ──────────── -->
+<div id="trail" style="border-top:0.5px solid var(--border);max-width:1200px;margin:0 auto;">
+  <div class="section">
+    <div class="section-number">01 / cursor trail</div>
+    <div class="section-title">Every move<br>leaves a mark.</div>
+    <p class="section-desc">Particles follow the cursor with staggered delay, shrinking and fading — active everywhere on this page.</p>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <div style="border:0.5px solid var(--border);border-radius:10px;padding:1.2rem 1.6rem;background:var(--card);">
+        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;">particle count</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:700;" id="particle-count-display">24</div>
+      </div>
+      <div style="border:0.5px solid var(--border);border-radius:10px;padding:1.2rem 1.6rem;background:var(--card);">
+        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;">fade duration</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:700;">600ms</div>
+      </div>
+      <div style="border:0.5px solid var(--border);border-radius:10px;padding:1.2rem 1.6rem;background:var(--card);">
+        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;">color mode</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--accent);">acid</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── EFFECT 02: CURSOR TRACKING PREVIEW ─ -->
+<div id="preview" style="border-top:0.5px solid var(--border);max-width:1200px;margin:0 auto;">
+  <div class="section">
+    <div class="section-number">02 / cursor tracking preview</div>
+    <div class="section-title">Hover to<br>reveal.</div>
+    <p class="section-desc">Float a preview card near the cursor as you hover project links. Context without leaving the page.</p>
+    <div class="preview-links-row">
+      <a class="preview-link" href="#"
+         data-bg="#0a1628" data-color="#4361ee" data-title="Cosmos UI" data-tag="Design system">
+        <span class="preview-dot" style="background:#4361ee;"></span>
+        Cosmos UI
+      </a>
+      <a class="preview-link" href="#"
+         data-bg="#1a0a0a" data-color="#f72585" data-title="Pink Noise" data-tag="Generative art">
+        <span class="preview-dot" style="background:#f72585;"></span>
+        Pink Noise
+      </a>
+      <a class="preview-link" href="#"
+         data-bg="#001a10" data-color="#06d6a0" data-title="Verdant" data-tag="Web app">
+        <span class="preview-dot" style="background:#06d6a0;"></span>
+        Verdant
+      </a>
+      <a class="preview-link" href="#"
+         data-bg="#1a1000" data-color="#fb8500" data-title="Solar" data-tag="Dashboard">
+        <span class="preview-dot" style="background:#fb8500;"></span>
+        Solar
+      </a>
+      <a class="preview-link" href="#"
+         data-bg="#0f0a1a" data-color="#c8ff00" data-title="Acid Grid" data-tag="Portfolio">
+        <span class="preview-dot" style="background:#c8ff00;"></span>
+        Acid Grid
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── EFFECT 03: VELOCITY BENTO ────────── -->
+<div id="bento" style="border-top:0.5px solid var(--border);max-width:1200px;margin:0 auto;">
+  <div class="section">
+    <div class="section-number">03 / velocity-scrubbed bento</div>
+    <div class="section-title">Speed warps<br>the grid.</div>
+    <p class="section-desc">Mouse velocity scrubs blur and scale across nearby tiles. Slow = crisp, fast = smear.</p>
+    <div id="bento-grid">
+      <div class="bento-item" style="background:#1a1020;"><div style="position:absolute;inset:0;background:linear-gradient(135deg,#4361ee33,#7209b766);"></div><div class="bento-item-label">cosmos</div></div>
+      <div class="bento-item" style="background:#1a0010;"><div style="position:absolute;inset:0;background:linear-gradient(135deg,#f7258533,#c8ff0022);"></div><div class="bento-item-label">noise</div></div>
+      <div class="bento-item" style="background:#001212;"><div style="position:absolute;inset:0;background:linear-gradient(135deg,#06d6a044,#4cc9f022);"></div><div class="bento-item-label">verdant</div></div>
+      <div class="bento-item" style="background:#120800;" style="grid-column:span 2;"><div style="position:absolute;inset:0;background:linear-gradient(135deg,#fb850033,#ef990033);"></div><div class="bento-item-label">solar</div></div>
+      <div class="bento-item" style="background:#0d1200;"><div style="position:absolute;inset:0;background:linear-gradient(135deg,#c8ff0033,#06d6a022);"></div><div class="bento-item-label">acid</div></div>
+      <div class="bento-item" style="background:#10001a;"><div style="position:absolute;inset:0;background:linear-gradient(135deg,#7209b755,#f7258533);"></div><div class="bento-item-label">violet</div></div>
+      <div class="bento-item" style="background:#00100a;"><div style="position:absolute;inset:0;background:linear-gradient(135deg,#3a86ff44,#06d6a033);"></div><div class="bento-item-label">glacier</div></div>
+      <div class="bento-item" style="background:#1a0800;"><div style="position:absolute;inset:0;background:linear-gradient(135deg,#ff9f1c44,#fb850033);"></div><div class="bento-item-label">ember</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── EFFECT 04: MORPHING ───────────────── -->
+<div id="morph" style="border-top:0.5px solid var(--border);max-width:1200px;margin:0 auto;">
+  <div class="section">
+    <div class="section-number">04 / dynamic morphing</div>
+    <div class="section-title">Forms shift,<br>shapes breathe.</div>
+    <p class="section-desc">Click the shape to cycle through morphs. CSS path transitions handle the interpolation.</p>
+    <div id="morph-section-inner">
+      <div id="morph-canvas">
+        <svg id="morph-svg" width="300" height="300" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <path id="morph-path" fill="#c8ff00" opacity="0.92"/>
+        </svg>
+      </div>
+      <div class="morph-info">
+        <div class="morph-stat">
+          <div class="morph-stat-label">current form</div>
+          <div class="morph-stat-value" id="morph-name">circle</div>
+        </div>
+        <div class="morph-stat">
+          <div class="morph-stat-label">iteration</div>
+          <div class="morph-stat-value" id="morph-iter">01 / 05</div>
+        </div>
+        <p class="morph-hint">Uses CSS <code>d</code> property transition with cubic-bezier spring easing. Click to cycle through all five forms.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── EFFECT 05: FOOTER BOUNCE ─────────── -->
+<footer>
+  <div id="footer-full">
+    <div class="section-number" style="margin-bottom:2rem;">05 / footer bounce</div>
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">EFFECT<span>/</span>S</div>
+        <p class="footer-tagline">A curated showcase of advanced browser effects built with vanilla JS and modern CSS.</p>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <div class="footer-col-title">Effects</div>
+          <ul class="footer-links">
+            <li><a href="#trail" class="bounce-word">Cursor trail</a></li>
+            <li><a href="#preview" class="bounce-word">Image preview</a></li>
+            <li><a href="#bento" class="bounce-word">Bento gallery</a></li>
+            <li><a href="#morph" class="bounce-word">Morphing</a></li>
+            <li><a href="#footer-full" class="bounce-word">Footer bounce</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Stack</div>
+          <ul class="footer-links">
+            <li><a href="#" class="bounce-word">Vanilla JS</a></li>
+            <li><a href="#" class="bounce-word">Modern CSS</a></li>
+            <li><a href="#" class="bounce-word">SVG paths</a></li>
+            <li><a href="#" class="bounce-word">No libraries</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Links</div>
+          <ul class="footer-links">
+            <li><a href="#" class="bounce-word">GitHub</a></li>
+            <li><a href="#" class="bounce-word">Codepen</a></li>
+            <li><a href="#" class="bounce-word">Twitter</a></li>
+            <li><a href="#" class="bounce-word">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2025 EFFECT/S — hover the links above</div>
+      <div class="footer-bottom-links">
+        <a href="#" class="bounce-word">Privacy</a>
+        <a href="#" class="bounce-word">Terms</a>
+        <a href="#" class="bounce-word">RSS</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── CURSOR ────────────────────────────────────────────────────
+const ring = document.getElementById('cursor-ring');
+const dot = document.getElementById('cursor-dot');
+let mx = -200, my = -200;
+let rx = -200, ry = -200;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  dot.style.left = mx + 'px';
+  dot.style.top = my + 'px';
+});
+
+function animCursor() {
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  ring.style.left = rx + 'px';
+  ring.style.top = ry + 'px';
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+
+document.querySelectorAll('a, button, .bento-item, #morph-svg, .preview-link').forEach(el => {
+  el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+  el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+});
+
+// ── CURSOR TRAIL ──────────────────────────────────────────────
+const TRAIL_COUNT = 24;
+const TRAIL_COLORS = ['#c8ff00', '#a8e000', '#88bb00', '#c8ff0088', '#c8ff0044'];
+const particles = [];
+
+for (let i = 0; i < TRAIL_COUNT; i++) {
+  const p = document.createElement('div');
+  p.className = 'trail-particle';
+  const sz = Math.max(3, 14 - i * 0.45);
+  p.style.cssText = `width:${sz}px;height:${sz}px;background:${TRAIL_COLORS[i % TRAIL_COLORS.length]};opacity:0;`;
+  document.body.appendChild(p);
+  particles.push({ el: p, x: -200, y: -200, size: sz });
+}
+
+const history = Array(TRAIL_COUNT).fill({ x: -200, y: -200 });
+let histHead = 0;
+
+document.addEventListener('mousemove', e => {
+  history[histHead] = { x: e.clientX, y: e.clientY };
+  histHead = (histHead + 1) % TRAIL_COUNT;
+});
+
+function animTrail() {
+  for (let i = 0; i < TRAIL_COUNT; i++) {
+    const idx = (histHead - 1 - i + TRAIL_COUNT) % TRAIL_COUNT;
+    const pos = history[idx];
+    const p = particles[i];
+    p.el.style.left = pos.x + 'px';
+    p.el.style.top = pos.y + 'px';
+    const opacity = Math.pow(1 - i / TRAIL_COUNT, 1.6) * 0.8;
+    p.el.style.opacity = opacity;
+  }
+  requestAnimationFrame(animTrail);
+}
+animTrail();
+
+// ── FLOAT PREVIEW ─────────────────────────────────────────────
+const floatPreview = document.getElementById('float-preview');
+const fTitle = document.getElementById('float-preview-title');
+const fTag = document.getElementById('float-preview-tag');
+const fInner = document.getElementById('float-preview-inner');
+let previewVisible = false;
+
+document.querySelectorAll('.preview-link').forEach(link => {
+  link.addEventListener('mouseenter', () => {
+    const bg = link.dataset.bg;
+    const color = link.dataset.color;
+    const title = link.dataset.title;
+    const tag = link.dataset.tag;
+    fInner.style.background = bg;
+    fTitle.textContent = title;
+    fTitle.style.color = color;
+    fTag.textContent = tag;
+    floatPreview.classList.add('show');
+    previewVisible = true;
+  });
+  link.addEventListener('mouseleave', () => {
+    floatPreview.classList.remove('show');
+    previewVisible = false;
+  });
+});
+
+document.addEventListener('mousemove', e => {
+  if (!previewVisible) return;
+  floatPreview.style.left = (e.clientX + 20) + 'px';
+  floatPreview.style.top = (e.clientY - 65) + 'px';
+});
+
+// ── VELOCITY BENTO ────────────────────────────────────────────
+const bentoGrid = document.getElementById('bento-grid');
+const bentoCells = bentoGrid.querySelectorAll('.bento-item');
+let lastBX = 0, lastBY = 0, vel = 0;
+
+document.addEventListener('mousemove', e => {
+  const dx = e.clientX - lastBX, dy = e.clientY - lastBY;
+  vel = Math.sqrt(dx * dx + dy * dy);
+  lastBX = e.clientX; lastBY = e.clientY;
+
+  bentoCells.forEach(cell => {
+    const r = cell.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
+    const radius = 260;
+    const influence = Math.max(0, 1 - dist / radius);
+    const blurAmt = Math.min(vel * influence * 0.22, 6);
+    const scaleAmt = Math.max(1 - vel * influence * 0.005, 0.91);
+    cell.style.filter = `blur(${blurAmt}px)`;
+    cell.style.transform = `scale(${scaleAmt})`;
+  });
+});
+
+// smooth restore when mouse stops
+setInterval(() => {
+  vel *= 0.85;
+  if (vel < 0.5) {
+    bentoCells.forEach(c => {
+      c.style.filter = 'blur(0)';
+      c.style.transform = 'scale(1)';
+    });
+  }
+}, 60);
+
+// ── MORPHING SHAPE ────────────────────────────────────────────
+const morphPath = document.getElementById('morph-path');
+const morphName = document.getElementById('morph-name');
+const morphIter = document.getElementById('morph-iter');
+
+const morphShapes = [
+  {
+    name: 'circle',
+    d: 'M100,18 C145,18 182,55 182,100 C182,145 145,182 100,182 C55,182 18,145 18,100 C18,55 55,18 100,18 Z',
+    fill: '#c8ff00'
+  },
+  {
+    name: 'blob',
+    d: 'M100,14 C148,14 188,48 183,95 C178,142 152,178 106,184 C60,190 16,158 14,110 C12,62 52,14 100,14 Z',
+    fill: '#4361ee'
+  },
+  {
+    name: 'star',
+    d: 'M100,16 L116,72 L172,56 L134,98 L162,148 L100,122 L38,148 L66,98 L28,56 L84,72 Z',
+    fill: '#f72585'
+  },
+  {
+    name: 'diamond',
+    d: 'M100,12 L188,100 L100,188 L12,100 Z',
+    fill: '#06d6a0'
+  },
+  {
+    name: 'triangle',
+    d: 'M100,18 C100,18 178,158 180,164 C182,176 170,184 158,184 L42,184 C30,184 18,176 20,164 C22,158 100,18 100,18 Z',
+    fill: '#fb8500'
+  }
+];
+
+let morphIdx = 0;
+morphPath.setAttribute('d', morphShapes[0].d);
+morphPath.style.fill = morphShapes[0].fill;
+morphPath.style.transition = 'd 0.7s cubic-bezier(.34,1.2,.64,1), fill 0.7s ease';
+
+document.getElementById('morph-svg').addEventListener('click', () => {
+  morphIdx = (morphIdx + 1) % morphShapes.length;
+  const s = morphShapes[morphIdx];
+  morphPath.setAttribute('d', s.d);
+  morphPath.style.fill = s.fill;
+  morphName.textContent = s.name;
+  morphName.style.color = s.fill;
+  morphIter.textContent = `0${morphIdx + 1} / 0${morphShapes.length}`;
+});
+
+// idle auto-breathe
+let breatheT = 0;
+function breathe() {
+  breatheT += 0.02;
+  const s = morphShapes[morphIdx];
+  const scale = 1 + Math.sin(breatheT) * 0.015;
+  document.getElementById('morph-svg').style.transform = `scale(${scale})`;
+  requestAnimationFrame(breathe);
+}
+breathe();
+
+// ── FOOTER BOUNCE ─────────────────────────────────────────────
+const bounceWords = document.querySelectorAll('.bounce-word');
+
+bounceWords.forEach((word, i) => {
+  word.addEventListener('mouseenter', () => {
+    bounceWords.forEach((w, j) => {
+      const dist = Math.abs(j - i);
+      setTimeout(() => {
+        w.classList.remove('bouncing');
+        void w.offsetWidth;
+        w.classList.add('bouncing');
+      }, dist * 55);
+    });
+  });
+  word.addEventListener('animationend', () => {
+    word.classList.remove('bouncing');
+  });
+});
+
+// auto bounce on page load after delay
+setTimeout(() => {
+  bounceWords.forEach((w, j) => {
+    setTimeout(() => {
+      w.classList.remove('bouncing');
+      void w.offsetWidth;
+      w.classList.add('bouncing');
+    }, j * 55);
+  });
+}, 1800);
+</script>
+</body>
+</html>
