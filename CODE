@@ -1,16 +1,30 @@
-using CRUD_app.Models;
-using Microsoft.EntityFrameworkCore;
-
-namespace StudentApp.Models
+using Microsoft.AspNetCore.Mvc;
+using StudentApp.Models;
+namespace CRUD_app.Controllers
 {
-    public class ApplicationDbContext : DbContext
+    public class StudentController : Controller
     {
-        //Constructor: when the app starts, it passes the database settings here
-        //'options' contains connections string from the appsetting.json
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options) { } //pass options to the parent DbContext class
+        // _context is our connection to the database:
+        private readonly ApplicationDbContext _context;
 
-        //DbSet<Student> means : there is a table in your database by name of Students
-        public DbSet<Student> Students { get; set; }
+        // We are making constructor
+        public StudentController(ApplicationDbContext context)
+        {
+            // Save the database connection into _context variable
+            _context = context;
+        }
+
+        // This method runs when someone visit: /Student/Index
+        public IActionResult Index()
+        {
+            var students = _context.Students.ToList();
+
+            return View();
+        }
+
+        // public IActionResult Index()
+        // {
+        //     return View();
+        // }
     }
 }
