@@ -1,2 +1,4 @@
+delete from Products where id=1;
+
 insert into Products values 
-('iphone91', 'not avaiable', 15000 , 'iphone.png')
+('iphone14', 'not avaiable', 15000 , 'iphone14.png')
